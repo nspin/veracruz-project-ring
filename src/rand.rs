@@ -207,6 +207,9 @@ use self::gp_tee::fill as fill_impl;
 #[cfg(feature = "nitro")]
 use self::nitro::fill as fill_impl;
 
+#[cfg(any(target_os = "icecap"))]
+use self::icecap::fill as fill_impl;
+
 
 #[cfg(all(not(feature = "mesalock_sgx"), not(target_os="optee"), target_os = "linux", not(feature = "nitro")))]
 mod sysrand_chunk {
@@ -472,3 +475,19 @@ mod nitro {
     }
 }
 
+#[cfg(any(target_os = "icecap"))]
+mod icecap {
+    // HACK
+
+    use core::sync::atomic::{AtomicU8, Ordering};
+    use crate::error;
+
+    static STATE: AtomicU8 = AtomicU8::new(0);
+
+    pub fn fill(dest: &mut [u8]) -> Result<(), error::Unspecified> {
+        for b in dest {
+            *b = STATE.fetch_add(1, Ordering::SeqCst);
+        }
+        Ok(())
+    }
+}
